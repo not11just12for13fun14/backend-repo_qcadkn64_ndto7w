@@ -1,6 +1,9 @@
 import os
+import shutil
+import tempfile
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI()
 
@@ -63,6 +66,29 @@ def test_database():
     response["database_name"] = "✅ Set" if os.getenv("DATABASE_NAME") else "❌ Not Set"
     
     return response
+
+
+@app.get("/download/project-zip")
+def download_project_zip():
+    """
+    Create a zip archive of the backend service directory and return it for download.
+    Note: In this environment, frontend and backend are isolated services.
+    This zip contains the backend project files.
+    """
+    try:
+        # Create a temporary directory to hold the archive
+        tmp_dir = tempfile.mkdtemp()
+        archive_base = os.path.join(tmp_dir, "backend_project")
+        # Make archive of current working directory (backend root)
+        archive_path = shutil.make_archive(archive_base, 'zip', root_dir='.', base_dir='.')
+        filename = os.path.basename(archive_path)
+        return FileResponse(
+            archive_path,
+            media_type="application/zip",
+            filename=filename
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 if __name__ == "__main__":
